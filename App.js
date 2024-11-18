@@ -1,13 +1,46 @@
 import React, {useState, useEffect} from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, Text, StyleSheet, TouchableOpacity, ImageBackground, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ImageBackground, Image, Dimensions, Button, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { Audio } from 'expo-av';
 import { StatusBar } from 'expo-status-bar';
+import Leaderboard from 'react-native-leaderboard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import PuzzleJohn from './PuzzleJohn';
 
 const Stack = createNativeStackNavigator();
 const {width, height} = Dimensions.get('window');
+
+
+let dummyLeaderboardData = [
+    {name: "Vitale", score: 4348854},
+    {name: "Lukas", score: 4333598},
+    {name: "Grace", score: 4323456},
+    {name: "Ari", score: 4323455},
+    {name: "Alan", score: 4323454},
+    {name: "Esther", score: 4323453},
+    {name: "Adam", score: 4323452},
+    {name: "Amalie", score: 4323451},
+    {name: "Jacob", score: 4323450},
+    {name: "Cassie", score: 4323503},
+]
+
+// async storage functions for the leaderboard screen
+const saveLeaderboard = async (leaderboardData) => {
+    AsyncStorage.setItem("leaderboard", leaderboardData);
+}
+
+const loadLeaderboard = async () => {
+    try {
+      const data = await AsyncStorage.getItem('leaderboard');
+      return data ? JSON.parse(data) : null;
+    } catch (error) {
+      console.error('Failed to load leaderboard:', error);
+      return null;
+    }
+  };
+
+
 
 const Elevator = ({navigation}) => {
     return (
@@ -144,6 +177,7 @@ const ThreeThreeFront = ({navigation}) => {
                         navigation.navigate('ThreeONine');
             }}>
                 
+                
                 <Image
                 source = {require('./assets/green_navigation_arrow.png')}
                 style={[styles.arrow, {
@@ -172,6 +206,14 @@ const ThreeThreeFront = ({navigation}) => {
                 </Image>
                 
                 </TouchableOpacity>
+                <TouchableOpacity>
+                <Button style={styles.leaderboardButton} 
+                 onPress={() => {
+                    console.log("Navigating to Leaderboard"); // Debugging log
+                    navigation.navigate('Leaderboard');
+        }}
+                title='Psst, click here to win'></Button>
+            </TouchableOpacity>
                 
         </ImageBackground>
     )
@@ -351,6 +393,80 @@ const ThreeONine = ({navigation}) => {
     )
 }
 
+const LeaderboardScreen = ({navigation}) => {
+
+
+// start leaderboard as null, we want to try to get it from storage first
+const [leaderboardData, setLeaderboardData] = useState(null);
+
+useEffect(() => {
+    const fetchLeaderboard = async () => {
+      const leaderboard = await loadLeaderboard();
+      if (leaderboard) {
+        setLeaderboardData(leaderboard); // Set leaderboard if it exists
+      } else {
+        setLeaderboardData(dummyLeaderboardData); // Default to dummy data
+        console.log("Couldn't load leaderboard for some reason :(")
+      }
+    };
+
+    fetchLeaderboard(); // Call the function
+  }, []); // Empty dependency array, we only want to load from memory when first opening the screen
+
+
+const updateLeaderboard = (name, score) => {
+    var newDs = [];
+    newDs = leaderboardData.slice();
+    newDs.push({ name: name, score: score });
+    setLeaderboardData(newDs);
+    saveLeaderboard(JSON.stringify(newDs));
+    Alert.alert("Score submitted!")
+  };
+    const [name, setName] = useState(''); // State variable to store the name entered by the user
+
+    const [score, setScore] = useState(0);
+
+    // Generate random score as a placeholder
+    const generateRandomScore = () => {
+      return Math.floor(Math.random() * (5000000 - 1000000 + 1)) + 1000000;
+    };
+  
+    // Generate the score whenever the screen is accessed - replace with real scoring logic when implemented
+    useEffect(() => {
+      setScore(generateRandomScore());
+    }, []);
+    return (
+        <View style={styles.container}>
+            <Text style={{color: 'white', fontSize: 30, marginBottom: 20, padding:30}}>Leaderboard</Text>
+            <Leaderboard 
+        data={leaderboardData} 
+        sortBy='score' 
+        labelBy='name'
+        // this leaderboard component is usually white w/ black text, customize it to black w/ white text
+        rankStyle={{color: "white"}} 
+        labelStyle={{color: "white"}}
+        scoreStyle={{color: "white"}}
+        evenRowColor="#0f0e0e"
+        oddRowColor="#1f1d1d"
+        ></Leaderboard>
+      <Text style={styles.scoreText}>Your score: {score}</Text>
+
+      <TextInput
+        style={styles.input}
+        placeholder="Enter name"
+        placeholderTextColor={'white'}
+        onChangeText={(text) => setName(text)}
+      />
+
+      <Button
+        title="Submit"
+        color="#c23127"
+        onPress={() => updateLeaderboard(name, score)}
+      />
+            </View>
+    )
+}
+
 const App = () => {
     return(
         <NavigationContainer>
@@ -366,6 +482,7 @@ const App = () => {
             <Stack.Screen name="ThreeBathroom" component = {ThreeBathroom}></Stack.Screen>
             <Stack.Screen name="ThreeONine" component = {ThreeONine}></Stack.Screen>
             <Stack.Screen name="PuzzleJohn" component = {PuzzleJohn}></Stack.Screen>
+            <Stack.Screen name="Leaderboard" component = {LeaderboardScreen}></Stack.Screen>
             </Stack.Navigator>
         </NavigationContainer>
     )
@@ -450,7 +567,32 @@ const styles = StyleSheet.create({
         width: width * 0.09,
         height: height * 0.04,
         position: 'absolute'
-    }
+    },
+    leaderboardButton: {
+    position: 'absolute', // Allows absolute positioning relative to the parent
+    top: 0, // Positions the item at the top of the screen
+    left: 0, // Positions the item at the left of the screen
+    margin: 10, // Optional: Adds some space from the edges
+    backgroundColor: 'lightgray', // Optional: Adds a background color for visibility
+    padding: 10, // Optional: Adds padding for the content
+    },
+    scoreText: {
+        color: 'white',
+        fontSize: 20,
+        marginBottom: 20, 
+        marginTop: 20
+      },
+      input: {
+        height: 50, 
+        backgroundColor: '#1c1a1a',
+        textShadowColor: 'white',
+        color: 'white',
+        padding: 10,
+        marginBottom: 20, 
+        width: '50%', 
+        borderRadius: 8, 
+      },
+
     })
     
 
