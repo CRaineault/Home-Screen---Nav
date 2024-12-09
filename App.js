@@ -7,6 +7,8 @@ import { StatusBar } from 'expo-status-bar';
 import Leaderboard from 'react-native-leaderboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import PuzzleJohn from './PuzzleJohn';
+import { useTimer } from './TimerContext';
+import { TimerProvider } from './TimerContext';
 
 const Stack = createNativeStackNavigator();
 const {width, height} = Dimensions.get('window');
@@ -43,6 +45,13 @@ const loadLeaderboard = async () => {
 
 
 const Elevator = ({navigation}) => {
+    const { startTimer} = useTimer();
+
+    // start timer as soon as you're on the elevator screen
+    useEffect(() => {
+      startTimer()
+    })
+
     return (
             <ImageBackground
                 source = {require('./assets/elevator.jpg')}
@@ -398,8 +407,11 @@ const LeaderboardScreen = ({navigation}) => {
 
 // start leaderboard as null, we want to try to get it from storage first
 const [leaderboardData, setLeaderboardData] = useState(null);
+const { pauseTimer, elapsedTime, resetTimer } = useTimer();
 
 useEffect(() => {
+    // pause timer to calculate score as soon as you load into the leaderboard
+    pauseTimer();
     const fetchLeaderboard = async () => {
       const leaderboard = await loadLeaderboard();
       if (leaderboard) {
@@ -426,14 +438,15 @@ const updateLeaderboard = (name, score) => {
 
     const [score, setScore] = useState(0);
 
-    // Generate random score as a placeholder
-    const generateRandomScore = () => {
-      return Math.floor(Math.random() * (5000000 - 1000000 + 1)) + 1000000;
+    // Generate score, default is 5,000,000 and we subtract the number of secs it took to get to the results
+    const generateScore = () => {
+      return 5000000 - elapsedTime;
     };
   
-    // Generate the score whenever the screen is accessed - replace with real scoring logic when implemented
+    // Generate the score whenever the screen is accessed
     useEffect(() => {
-      setScore(generateRandomScore());
+      setScore(generateScore());
+      resetTimer(); // reset the timer so if the user tries to start over, their timer will be refreshed too
     }, []);
     return (
         <View style={styles.container}>
@@ -469,6 +482,7 @@ const updateLeaderboard = (name, score) => {
 
 const App = () => {
     return(
+        <TimerProvider>
         <NavigationContainer>
             <Stack.Navigator
         initialRouteName="Elevator"
@@ -485,6 +499,7 @@ const App = () => {
             <Stack.Screen name="Leaderboard" component = {LeaderboardScreen}></Stack.Screen>
             </Stack.Navigator>
         </NavigationContainer>
+        </TimerProvider>
     )
 }
 
