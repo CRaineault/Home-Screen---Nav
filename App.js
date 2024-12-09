@@ -429,10 +429,17 @@ useEffect(() => {
 const updateLeaderboard = (name, score) => {
     var newDs = [];
     newDs = leaderboardData.slice();
-    newDs.push({ name: name, score: score });
+    // try to find a duplicate score if it exists, if there is none, only then send the new score
+    if (newDs.find((entry) => entry.name === name && entry.score === score) === undefined){
+        newDs.push({ name: name, score: score });
+        Alert.alert("Score submitted!")
+    }
+    // if a dupe is found, alert the user
+    else {
+        Alert.alert("Leaderboard already has an entry with this exact name and score.")
+    }
     setLeaderboardData(newDs);
     saveLeaderboard(JSON.stringify(newDs));
-    Alert.alert("Score submitted!")
   };
     const [name, setName] = useState(''); // State variable to store the name entered by the user
 
