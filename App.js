@@ -409,6 +409,8 @@ const LeaderboardScreen = ({navigation}) => {
 const [leaderboardData, setLeaderboardData] = useState(null);
 const { pauseTimer, elapsedTime, resetTimer } = useTimer();
 
+const [submitted, setSubmitted] = useState(false);
+
 useEffect(() => {
     // pause timer to calculate score as soon as you load into the leaderboard
     pauseTimer();
@@ -430,13 +432,14 @@ const updateLeaderboard = (name, score) => {
     var newDs = [];
     newDs = leaderboardData.slice();
     // try to find a duplicate score if it exists, if there is none, only then send the new score
-    if (newDs.find((entry) => entry.name === name && entry.score === score) === undefined){
+    if (submitted === false){
         newDs.push({ name: name, score: score });
         Alert.alert("Score submitted!")
+        setSubmitted(true);
     }
     // if a dupe is found, alert the user
     else {
-        Alert.alert("Leaderboard already has an entry with this exact name and score.")
+        Alert.alert("Your score is already submitted.")
     }
     setLeaderboardData(newDs);
     saveLeaderboard(JSON.stringify(newDs));
